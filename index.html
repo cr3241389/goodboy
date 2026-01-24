@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>儿童习惯打卡积分系统</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4361ee',
+            secondary: '#ff7b00',
+            success: '#38b000',
+            warning: '#ffbe0b',
+            danger: '#ff5263',
+            info: '#3a86ff',
+            light: '#f8f9fa',
+            dark: '#212529',
+            'primary-light': '#4cc9f0',
+            'secondary-light': '#ffd166',
+          },
+          fontFamily: {
+            sans: ['Arial Rounded MT Bold', 'Varela Round', 'sans-serif'],
+          },
+          animation: {
+            'bounce-slow': 'bounce 2s infinite',
+            'spin-slow': 'spin 3s linear infinite',
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            wiggle: {
+              '0%, 100%': { transform: 'rotate(-3deg)' },
+              '50%': { transform: 'rotate(3deg)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- 添加ES6兼容性支持 -->
+  <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/core-js@3/stable/core.min.js"></script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .text-shadow-lg {
+        text-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+      }
+      .card-hover {
+        @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+      }
+      .btn-primary {
+        @apply bg-primary text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-opacity-90 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+      }
+      .btn-secondary {
+        @apply bg-secondary text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-opacity-90 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-opacity-50;
+      }
+      .btn-outline {
+        @apply border-2 border-primary text-primary font-bold py-3 px-6 rounded-full shadow hover:bg-primary hover:text-white transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+      }
+      .card {
+        @apply bg-white rounded-2xl shadow-lg p-6;
+      }
+      .input-field {
+        @apply w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300;
+      }
+      .badge {
+        @apply inline-block px-3 py-1 text-sm font-semibold rounded-full;
+      }
+      .badge-primary {
+        @apply bg-primary text-white;
+      }
+      .badge-secondary {
+        @apply bg-secondary text-white;
+      }
+      .badge-success {
+        @apply bg-success text-white;
+      }
+      .badge-warning {
+        @apply bg-warning text-white;
+      }
+      .badge-danger {
+        @apply bg-danger text-white;
+      }
+    }
+  </style>
+  
+  <!-- 兼容性样式 -->
+  <style>
+    /* 为旧版浏览器添加基本样式支持 */
+    @media screen and (max-width: 768px) {
+      .grid {
+        display: block;
+      }
+      .grid > * {
+        margin-bottom: 1rem;
+      }
+    }
+    
+    /* 确保按钮在所有设备上都可点击 */
+    button {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 确保输入框在移动设备上有适当的高度 */
+    input, textarea, select {
+      min-height: 44px;
+    }
+    
+    /* 防止iOS上的文本缩放 */
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      -webkit-text-size-adjust: 100%;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 min-h-screen font-sans">
+  <!-- 背景装饰 -->
+  <div class="fixed inset-0 z-0 opacity-20 pointer-events-none">
+    <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a1874744a50141ab91aee0587ced28a9~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685056&x-signature=BkeFJQIiLB7C4zt7ZyZCQwFSV5M%3D" 
+         alt="背景" class="w-full h-full object-cover">
+  </div>
+
+  <!-- 主容器 -->
+  <div class="relative z-10 container mx-auto px-4 py-8 max-w-6xl">
+    <!-- 页面内容将根据当前视图动态加载 -->
+    <div id="app-container">
+      <!-- 登录/用户选择页面 -->
+      <div id="login-view" class="flex flex-col items-center justify-center min-h-[80vh]">
+        <div class="text-center mb-12">
+          <h1 class="text-5xl md:text-6xl font-bold text-primary mb-4 text-shadow-lg">
+            习惯小明星
+          </h1>
+          <p class="text-xl text-gray-600">
+            打卡好习惯，转动幸运盘，赢取精彩奖励！
+          </p>
+        </div>
+        
+        <div class="w-full max-w-md">
+          <div class="card mb-8">
+            <h2 class="text-2xl font-bold text-center mb-6 text-primary">选择用户</h2>
+            
+            <div id="users-list" class="space-y-4 mb-6">
+              <!-- 用户列表将通过JavaScript动态生成 -->
+              <div class="animate-pulse flex items-center space-x-4">
+                <div class="rounded-full bg-gray-200 h-12 w-12"></div>
+                <div class="flex-1 space-y-2 py-1">
+                  <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div class="space-y-2">
+                    <div class="h-2 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <button id="create-user-btn" class="btn-primary w-full flex items-center justify-center">
+              <i class="fa fa-plus-circle mr-2"></i> 添加新用户
+            </button>
+          </div>
+          
+          <div class="card">
+            <h2 class="text-2xl font-bold text-center mb-6 text-primary">数据管理</h2>
+            
+            <div class="space-y-4">
+              <button id="export-data-btn" class="btn-outline w-full flex items-center justify-center">
+                <i class="fa fa-download mr-2"></i> 导出数据
+              </button>
+              
+              <div class="relative">
+                <input type="file" id="import-data-input" accept=".json" class="absolute inset-0 opacity-0 cursor-pointer">
+                <button id="import-data-btn" class="btn-outline w-full flex items-center justify-center" onclick="document.getElementById('import-data-input').click()">
+                  <i class="fa fa-upload mr-2"></i> 导入数据
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 创建用户页面 -->
+      <div id="create-user-view" class="hidden">
+        <div class="flex justify-between items-center mb-8">
+          <button id="back-to-login-btn" class="btn-outline flex items-center">
+            <i class="fa fa-arrow-left mr-2"></i> 返回
+          </button>
+        </div>
+        
+        <div class="max-w-md mx-auto">
+          <div class="card">
+            <h2 class="text-2xl font-bold text-center mb-6 text-primary">创建新用户</h2>
+            
+            <form id="create-user-form" class="space-y-6">
+              <div>
+                <label for="user-name" class="block text-gray-700 font-bold mb-2">孩子姓名</label>
+                <input type="text" id="user-name" class="input-field" placeholder="请输入孩子姓名" required>
+              </div>
+              
+              <div>
+                <label for="user-avatar" class="block text-gray-700 font-bold mb-2">选择头像</label>
+                <div class="grid grid-cols-4 gap-4">
+                  <div class="avatar-option selected">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a64fff1094804b89837ca124eb7c9494~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685070&x-signature=PTdm1MdaeCjFIJvtHep9FYSFPqg%3D" 
+                         alt="头像1" class="w-full h-16 object-cover rounded-full border-4 border-primary cursor-pointer">
+                  </div>
+                  <div class="avatar-option">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a64fff1094804b89837ca124eb7c9494~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685070&x-signature=PTdm1MdaeCjFIJvtHep9FYSFPqg%3D" 
+                         alt="头像2" class="w-full h-16 object-cover rounded-full border-4 border-transparent cursor-pointer">
+                  </div>
+                  <div class="avatar-option">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a64fff1094804b89837ca124eb7c9494~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685070&x-signature=PTdm1MdaeCjFIJvtHep9FYSFPqg%3D" 
+                         alt="头像3" class="w-full h-16 object-cover rounded-full border-4 border-transparent cursor-pointer">
+                  </div>
+                  <div class="avatar-option">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a64fff1094804b89837ca124eb7c9494~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685070&x-signature=PTdm1MdaeCjFIJvtHep9FYSFPqg%3D" 
+                         alt="头像4" class="w-full h-16 object-cover rounded-full border-4 border-transparent cursor-pointer">
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label for="initial-points" class="block text-gray-700 font-bold mb-2">初始积分</label>
+                <input type="number" id="initial-points" class="input-field" value="0" min="0">
+              </div>
+              
+              <button type="submit" class="btn-primary w-full">创建用户</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 主仪表盘页面 -->
+      <div id="dashboard-view" class="hidden">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white rounded-2xl shadow-lg p-4 mb-8 flex justify-between items-center">
+          <div class="flex items-center">
+            <div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl mr-3">
+              <span id="user-avatar">宝</span>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800" id="user-name-display">小明</h2>
+              <p class="text-sm text-gray-500">今天也要加油哦！</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center">
+            <div class="bg-primary bg-opacity-10 rounded-full px-4 py-2 flex items-center mr-4">
+              <i class="fa fa-star text-yellow-500 mr-2"></i>
+              <span class="font-bold text-primary" id="total-points">0</span>
+            </div>
+            
+            <div class="relative">
+              <button id="user-menu-btn" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center focus:outline-none">
+                <i class="fa fa-cog text-gray-600"></i>
+              </button>
+              
+              <div id="user-menu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 hidden">
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" id="edit-user-btn">
+                  <i class="fa fa-user-edit mr-2 text-gray-600"></i> 编辑资料
+                </button>
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" id="manage-habits-btn">
+                  <i class="fa fa-tasks mr-2 text-gray-600"></i> 管理习惯
+                </button>
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" id="manage-rewards-btn">
+                  <i class="fa fa-gift mr-2 text-gray-600"></i> 管理奖励
+                </button>
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" id="export-user-data-btn">
+                  <i class="fa fa-download mr-2 text-gray-600"></i> 导出数据
+                </button>
+                <hr class="my-1">
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-red-500" id="logout-btn">
+                  <i class="fa fa-sign-out-alt mr-2"></i> 退出登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+        
+        <!-- 今日习惯 -->
+        <div class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">今日习惯</h2>
+            <span class="badge bg-primary bg-opacity-10 text-primary font-medium" id="today-date">2023年7月21日</span>
+          </div>
+          
+          <div id="today-habits" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- 习惯卡片将通过JavaScript动态生成 -->
+            <div class="animate-pulse card">
+              <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div class="flex justify-between items-center">
+                <div class="h-8 bg-gray-200 rounded w-1/4"></div>
+                <div class="h-10 bg-gray-200 rounded w-1/3"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 奖励转盘 -->
+        <div class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">幸运转盘</h2>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary font-medium">消耗积分: <span id="spin-cost">100</span></span>
+          </div>
+          
+          <div class="card text-center">
+            <div class="relative w-full max-w-md mx-auto mb-6">
+              <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/995e0024c749491fa0fa8c7226813be9~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685089&x-signature=d7NX0ufJmm9idaLmOA6Iy4juGqs%3D" 
+                   alt="幸运转盘" class="w-full h-auto rounded-full" id="wheel-image">
+              
+              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center z-10">
+                <button id="spin-wheel-btn" class="w-12 h-12 bg-secondary rounded-full flex items-center justify-center text-white font-bold text-xl shadow hover:bg-opacity-90 transition-all duration-300 transform hover:scale-110 focus:outline-none">
+                  转
+                </button>
+              </div>
+            </div>
+            
+            <div id="spin-result" class="hidden">
+              <div class="bg-success bg-opacity-10 rounded-xl p-6 mb-6">
+                <h3 class="text-2xl font-bold text-success mb-2">恭喜你！</h3>
+                <p class="text-gray-700">你获得了奖励：<span id="reward-name" class="font-bold text-lg">看动画片</span></p>
+              </div>
+            </div>
+            
+            <div id="insufficient-points" class="hidden">
+              <div class="bg-danger bg-opacity-10 rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold text-danger mb-2">积分不足</h3>
+                <p class="text-gray-700">继续完成习惯任务来赚取更多积分吧！</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 最近活动 -->
+        <div>
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">最近活动</h2>
+            <button class="text-primary hover:underline flex items-center">
+              查看全部 <i class="fa fa-chevron-right ml-1 text-sm"></i>
+            </button>
+          </div>
+          
+          <div class="card">
+            <div id="activity-log" class="space-y-4">
+              <!-- 活动记录将通过JavaScript动态生成 -->
+              <div class="animate-pulse flex items-center space-x-4">
+                <div class="rounded-full bg-gray-200 h-10 w-10"></div>
+                <div class="flex-1 space-y-2 py-1">
+                  <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div class="h-3 bg-gray-200 rounded w-1/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 管理习惯页面 -->
+      <div id="manage-habits-view" class="hidden">
+        <div class="flex justify-between items-center mb-8">
+          <button id="back-to-dashboard-btn" class="btn-outline flex items-center">
+            <i class="fa fa-arrow-left mr-2"></i> 返回
+          </button>
+          <h1 class="text-2xl font-bold text-gray-800">管理习惯</h1>
+          <div class="w-24"></div> <!-- 占位，保持标题居中 -->
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- 习惯列表 -->
+          <div class="lg:col-span-2">
+            <div class="card">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800">习惯列表</h2>
+                <div class="flex space-x-2">
+                  <div class="relative">
+                    <input type="text" id="habit-search" placeholder="搜索习惯..." class="input-field py-2 pl-10">
+                    <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div id="habits-list" class="space-y-4">
+                <!-- 习惯列表将通过JavaScript动态生成 -->
+                <div class="animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                  <div class="flex justify-between items-center">
+                    <div class="h-8 bg-gray-200 rounded w-1/4"></div>
+                    <div class="h-10 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 添加/编辑习惯 -->
+          <div>
+            <div class="card">
+              <h2 class="text-xl font-bold text-gray-800 mb-6" id="habit-form-title">添加新习惯</h2>
+              
+              <form id="habit-form" class="space-y-4">
+                <input type="hidden" id="habit-id">
+                
+                <div>
+                  <label for="habit-name" class="block text-gray-700 font-bold mb-2">习惯名称</label>
+                  <input type="text" id="habit-name" class="input-field" placeholder="例如：按时睡觉" required>
+                </div>
+                
+                <div>
+                  <label for="habit-description" class="block text-gray-700 font-bold mb-2">习惯描述</label>
+                  <textarea id="habit-description" class="input-field" rows="2" placeholder="例如：晚上9点前上床睡觉"></textarea>
+                </div>
+                
+                <div>
+                  <label for="habit-points" class="block text-gray-700 font-bold mb-2">完成积分</label>
+                  <input type="number" id="habit-points" class="input-field" min="1" value="10" required>
+                </div>
+                
+                <div>
+                  <label for="habit-category" class="block text-gray-700 font-bold mb-2">习惯分类</label>
+                  <select id="habit-category" class="input-field">
+                    <option value="健康习惯">健康习惯</option>
+                    <option value="学习习惯">学习习惯</option>
+                    <option value="生活习惯">生活习惯</option>
+                    <option value="社交习惯">社交习惯</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label class="block text-gray-700 font-bold mb-2">重复频率</label>
+                  <div class="flex space-x-4">
+                    <label class="inline-flex items-center">
+                      <input type="radio" name="habit-frequency" value="daily" class="form-radio text-primary" checked>
+                      <span class="ml-2">每天</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                      <input type="radio" name="habit-frequency" value="weekly" class="form-radio text-primary">
+                      <span class="ml-2">每周</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div id="weekly-days" class="hidden">
+                  <label class="block text-gray-700 font-bold mb-2">选择星期</label>
+                  <div class="grid grid-cols-7 gap-2">
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="0" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">日</span>
+                    </label>
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="1" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">一</span>
+                    </label>
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="2" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">二</span>
+                    </label>
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="3" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">三</span>
+                    </label>
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="4" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">四</span>
+                    </label>
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="5" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">五</span>
+                    </label>
+                    <label class="inline-flex items-center justify-center w-full">
+                      <input type="checkbox" name="habit-days" value="6" class="form-checkbox text-primary">
+                      <span class="ml-1 text-sm">六</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="pt-4">
+                  <button type="submit" class="btn-primary w-full" id="save-habit-btn">保存习惯</button>
+                  <button type="button" class="btn-outline w-full mt-2 hidden" id="cancel-edit-btn">取消编辑</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 管理奖励页面 -->
+      <div id="manage-rewards-view" class="hidden">
+        <div class="flex justify-between items-center mb-8">
+          <button id="back-from-rewards-btn" class="btn-outline flex items-center">
+            <i class="fa fa-arrow-left mr-2"></i> 返回
+          </button>
+          <h1 class="text-2xl font-bold text-gray-800">管理奖励</h1>
+          <div class="w-24"></div> <!-- 占位，保持标题居中 -->
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- 奖励列表 -->
+          <div class="lg:col-span-2">
+            <div class="card">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800">奖励列表</h2>
+                <div class="flex space-x-2">
+                  <div class="relative">
+                    <input type="text" id="reward-search" placeholder="搜索奖励..." class="input-field py-2 pl-10">
+                    <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div id="rewards-list" class="space-y-4">
+                <!-- 奖励列表将通过JavaScript动态生成 -->
+                <div class="animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                  <div class="flex justify-between items-center">
+                    <div class="h-8 bg-gray-200 rounded w-1/4"></div>
+                    <div class="h-10 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 转盘配置 -->
+            <div class="card mt-8">
+              <h2 class="text-xl font-bold text-gray-800 mb-6">转盘配置</h2>
+              
+              <div class="mb-6">
+                <label for="spin-cost-input" class="block text-gray-700 font-bold mb-2">每次转盘消耗积分</label>
+                <input type="number" id="spin-cost-input" class="input-field" min="1" value="100" required>
+              </div>
+              
+              <div class="mb-6">
+                <label class="block text-gray-700 font-bold mb-2">转盘奖励</label>
+                <p class="text-gray-500 mb-4">请选择要在转盘中显示的奖励（最多8个）</p>
+                
+                <div id="wheel-rewards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- 转盘奖励选择将通过JavaScript动态生成 -->
+                </div>
+              </div>
+              
+              <button id="save-wheel-config-btn" class="btn-primary">保存转盘配置</button>
+            </div>
+          </div>
+          
+          <!-- 添加/编辑奖励 -->
+          <div>
+            <div class="card">
+              <h2 class="text-xl font-bold text-gray-800 mb-6" id="reward-form-title">添加新奖励</h2>
+              
+              <form id="reward-form" class="space-y-4">
+                <input type="hidden" id="reward-id">
+                
+                <div>
+                  <label for="reward-name" class="block text-gray-700 font-bold mb-2">奖励名称</label>
+                  <input type="text" id="reward-name-input" class="input-field" placeholder="例如：看动画片" required>
+                </div>
+                
+                <div>
+                  <label for="reward-description" class="block text-gray-700 font-bold mb-2">奖励描述</label>
+                  <textarea id="reward-description" class="input-field" rows="2" placeholder="例如：可以看30分钟喜欢的动画片"></textarea>
+                </div>
+                
+                <div>
+                  <label for="reward-cost" class="block text-gray-700 font-bold mb-2">奖励积分</label>
+                  <input type="number" id="reward-cost" class="input-field" min="1" value="50" required>
+                </div>
+                
+                <div>
+                  <label class="block text-gray-700 font-bold mb-2">奖励图标</label>
+                  <div class="grid grid-cols-4 gap-4">
+                    <div class="reward-icon-option selected">
+                      <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/8ccb08a86c174fb8b06a052085a64661~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685079&x-signature=PZ1upYJpXsKNSx7EffF9wyir8ME%3D" 
+                           alt="图标1" class="w-full h-12 object-contain rounded-lg border-4 border-primary cursor-pointer">
+                    </div>
+                    <div class="reward-icon-option">
+                      <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/8ccb08a86c174fb8b06a052085a64661~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685079&x-signature=PZ1upYJpXsKNSx7EffF9wyir8ME%3D" 
+                           alt="图标2" class="w-full h-12 object-contain rounded-lg border-4 border-transparent cursor-pointer">
+                    </div>
+                    <div class="reward-icon-option">
+                      <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/8ccb08a86c174fb8b06a052085a64661~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685079&x-signature=PZ1upYJpXsKNSx7EffF9wyir8ME%3D" 
+                           alt="图标3" class="w-full h-12 object-contain rounded-lg border-4 border-transparent cursor-pointer">
+                    </div>
+                    <div class="reward-icon-option">
+                      <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/8ccb08a86c174fb8b06a052085a64661~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202601222243450207CEF0D74C0A0194DD&rrcfp=f06b921b&x-expires=1771685079&x-signature=PZ1upYJpXsKNSx7EffF9wyir8ME%3D" 
+                           alt="图标4" class="w-full h-12 object-contain rounded-lg border-4 border-transparent cursor-pointer">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="pt-4">
+                  <button type="submit" class="btn-primary w-full" id="save-reward-btn">保存奖励</button>
+                  <button type="button" class="btn-outline w-full mt-2 hidden" id="cancel-reward-edit-btn">取消编辑</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 模态框 -->
+  <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50" id="modal-overlay"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 z-10" id="modal-content">
+      <!-- 模态框内容将通过JavaScript动态生成 -->
+    </div>
+  </div>
+
+  <script>
+    // 应用数据
+    const AppData = {
+      users: [],
+      currentUser: null,
+      
+      // 初始化应用
+      init() {
+        this.loadData();
+        this.setupEventListeners();
+        this.showLoginView();
+        this.updateTodayDate();
+      },
+      
+      // 从localStorage加载数据
+      loadData() {
+        const savedData = localStorage.getItem('kidsRewardSystem');
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          this.users = parsedData.users || [];
+        }
+        
+        // 如果没有用户，创建默认用户
+        if (this.users.length === 0) {
+          this.createDefaultUser();
+        }
+      },
+      
+      // 保存数据到localStorage
+      saveData() {
+        const data = {
+          users: this.users,
+          lastUpdated: new Date().toISOString()
+        };
+        localStorage.setItem('kidsRewardSystem', JSON.stringify(data));
+      },
+      
+      // 创建默认用户
+      createDefaultUser() {
+        const defaultUser = {
+          userId: this.generateId(),
+          userName: "小明",
+          avatar: "宝",
+          totalPoints: 0,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          
+          // 默认习惯
+          habits: [
+            {
+              id: this.generateId(),
+              name: "按时睡觉",
+              description: "晚上9点前上床睡觉",
+              points: 10,
+              category: "健康习惯",
+              active: true,
+              createdAt: new Date().toISOString(),
+              schedule: {
+                type: "daily",
+                days: [0, 1, 2, 3, 4, 5, 6]
+              },
+              completions: []
+            },
+            {
+              id: this.generateId(),
+              name: "自己刷牙",
+              description: "早晚自己刷牙",
+              points: 5,
+              category: "健康习惯",
+              active: true,
+              createdAt: new Date().toISOString(),
+              schedule: {
+                type: "daily",
+                days: [0, 1, 2, 3, 4, 5, 6]
+              },
+              completions: []
+            },
+            {
+              id: this.generateId(),
+              name: "早起",
+              description: "早上7点前起床",
+              points: 10,
+              category: "生活习惯",
+              active: true,
+              createdAt: new Date().toISOString(),
+              schedule: {
+                type: "weekly",
+                days: [1, 2, 3, 4, 5] // 周一到周五
+              },
+              completions: []
+            }
+          ],
+          
+          // 默认奖励
+          rewards: [
+            {
+              id: this.generateId(),
+              name: "看动画片",
+              description: "可以看30分钟喜欢的动画片",
+              cost: 50,
+              active: true,
+              createdAt: new Date().toISOString(),
+              image: "🎬"
+            },
+            {
+              id: this.generateId(),
+              name: "吃冰淇淋",
+              description: "可以吃一个冰淇淋",
+              cost: 30,
+              active: true,
+              createdAt: new Date().toISOString(),
+              image: "🍦"
+            },
+            {
+              id: this.generateId(),
+              name: "买玩具",
+              description: "可以买一个小玩具",
+              cost: 200,
+              active: true,
+              createdAt: new Date().toISOString(),
+              image: "🎮"
+            }
+          ],
+          
+          // 转盘配置
+          wheelConfig: {
+            segments: [],
+            spinCost: 100
+          },
+          
+          // 历史记录
+          history: []
+        };
+        
+        // 初始化转盘段
+        defaultUser.wheelConfig.segments = defaultUser.rewards.slice(0, 8).map(reward => ({
+          id: this.generateId(),
+          rewardId: reward.id,
+          weight: 1
+        }));
+        
+        this.users.push(defaultUser);
+        this.saveData();
+      },
+      
+      // 生成唯一ID
+      generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      },
+      
+      // 设置事件监听器
+      setupEventListeners() {
+        // 登录页面事件
+        document.getElementById('create-user-btn').addEventListener('click', () => this.showCreateUserView());
+        document.getElementById('export-data-btn').addEventListener('click', () => this.exportAllData());
+        document.getElementById('import-data-input').addEventListener('change', (e) => this.importData(e));
+        
+        // 创建用户页面事件
+        document.getElementById('back-to-login-btn').addEventListener('click', () => this.showLoginView());
+        document.getElementById('create-user-form').addEventListener('submit', (e) => this.createUser(e));
+        
+        // 头像选择
+        document.querySelectorAll('.avatar-option').forEach(option => {
+          option.addEventListener('click', () => {
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+              opt.querySelector('img').classList.remove('border-primary');
+              opt.querySelector('img').classList.add('border-transparent');
+            });
+            option.querySelector('img').classList.remove('border-transparent');
+            option.querySelector('img').classList.add('border-primary');
+          });
+        });
+        
+        // 仪表盘页面事件
+        document.getElementById('user-menu-btn').addEventListener('click', () => this.toggleUserMenu());
+        document.getElementById('logout-btn').addEventListener('click', () => this.logout());
+        document.getElementById('manage-habits-btn').addEventListener('click', () => this.showManageHabitsView());
+        document.getElementById('manage-rewards-btn').addEventListener('click', () => this.showManageRewardsView());
+        document.getElementById('export-user-data-btn').addEventListener('click', () => this.exportUserData());
+        document.getElementById('spin-wheel-btn').addEventListener('click', () => this.spinWheel());
+        
+        // 管理习惯页面事件
+        document.getElementById('back-to-dashboard-btn').addEventListener('click', () => this.showDashboardView());
+        document.getElementById('habit-form').addEventListener('submit', (e) => this.saveHabit(e));
+        document.getElementById('cancel-edit-btn').addEventListener('click', () => this.resetHabitForm());
+        
+        // 管理奖励页面事件
+        document.getElementById('back-from-rewards-btn').addEventListener('click', () => this.showDashboardView());
+        document.getElementById('reward-form').addEventListener('submit', (e) => this.saveReward(e));
+        document.getElementById('cancel-reward-edit-btn').addEventListener('click', () => this.resetRewardForm());
+        document.getElementById('save-wheel-config-btn').addEventListener('click', () => this.saveWheelConfig());
+        
+        // 模态框事件
+        document.getElementById('modal-overlay').addEventListener('click', () => this.hideModal());
+        
+        // 习惯频率选择事件
+        document.querySelectorAll('input[name="habit-frequency"]').forEach(radio => {
+          radio.addEventListener('change', (e) => {
+            const weeklyDays = document.getElementById('weekly-days');
+            if (e.target.value === 'weekly') {
+              weeklyDays.classList.remove('hidden');
+            } else {
+              weeklyDays.classList.add('hidden');
+            }
+          });
+        });
+        
+        // 奖励图标选择
+        document.querySelectorAll('.reward-icon-option').forEach(option => {
+          option.addEventListener('click', () => {
+            document.querySelectorAll('.reward-icon-option').forEach(opt => {
+              opt.querySelector('img').classList.remove('border-primary');
+              opt.querySelector('img').classList.add('border-transparent');
+            });
+            option.querySelector('img').classList.remove('border-transparent');
+            option.querySelector('img').classList.add('border-primary');
+          });
+        });
+      },
+      
+      // 显示登录视图
+      showLoginView() {
+        this.hideAllViews();
+        document.getElementById('login-view').classList.remove('hidden');
+        this.renderUsersList();
+      },
+      
+      // 显示创建用户视图
+      showCreateUserView() {
+        this.hideAllViews();
+        document.getElementById('create-user-view').classList.remove('hidden');
+        this.resetCreateUserForm();
+      },
+      
+      // 显示仪表盘视图
+      showDashboardView() {
+        this.hideAllViews();
+        document.getElementById('dashboard-view').classList.remove('hidden');
+        this.updateDashboard();
+      },
+      
+      // 显示管理习惯视图
+      showManageHabitsView() {
+        this.hideAllViews();
+        document.getElementById('manage-habits-view').classList.remove('hidden');
+        this.renderHabitsList();
+        this.resetHabitForm();
+      },
+      
+      // 显示管理奖励视图
+      showManageRewardsView() {
+        this.hideAllViews();
+        document.getElementById('manage-rewards-view').classList.remove('hidden');
+        this.renderRewardsList();
+        this.resetRewardForm();
+        this.renderWheelRewards();
+        document.getElementById('spin-cost-input').value = this.currentUser.wheelConfig.spinCost;
+      },
+      
+      // 隐藏所有视图
+      hideAllViews() {
+        const views = ['login-view', 'create-user-view', 'dashboard-view', 'manage-habits-view', 'manage-rewards-view'];
+        views.forEach(viewId => {
+          document.getElementById(viewId).classList.add('hidden');
+        });
+        
+        // 隐藏用户菜单
+        document.getElementById('user-menu').classList.add('hidden');
+      },
+      
+      // 渲染用户列表
+      renderUsersList() {
+        const usersList = document.getElementById('users-list');
+        usersList.innerHTML = '';
+        
+        this.users.forEach(user => {
+          const userElement = document.createElement('div');
+          userElement.className = 'flex items-center justify-between p-4 bg-white rounded-xl shadow hover:shadow-md transition-all cursor-pointer';
+          userElement.innerHTML = `
+            <div class="flex items-center">
+              <div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl mr-3">
+                ${user.avatar}
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-800">${user.userName}</h3>
+                <p class="text-sm text-gray-500">${this.formatDate(new Date(user.lastLogin))}</p>
+              </div>
+            </div>
+            <div class="flex items-center">
+              <span class="bg-primary bg-opacity-10 text-primary font-bold rounded-full px-3 py-1 flex items-center">
+                <i class="fa fa-star text-yellow-500 mr-1"></i>
+                ${user.totalPoints}
+              </span>
+            </div>
+          `;
+          
+          userElement.addEventListener('click', () => this.login(user));
+          usersList.appendChild(userElement);
+        });
+      },
+      
+      // 用户登录
+      login(user) {
+        this.currentUser = user;
+        user.lastLogin = new Date().toISOString();
+        this.saveData();
+        this.showDashboardView();
+      },
+      
+      // 用户登出
+      logout() {
+        this.currentUser = null;
+        this.showLoginView();
+      },
+      
+      // 更新仪表盘
+      updateDashboard() {
+        if (!this.currentUser) return;
+        
+        // 更新用户信息
+        document.getElementById('user-avatar').textContent = this.currentUser.avatar;
+        document.getElementById('user-name-display').textContent = this.currentUser.userName;
+        document.getElementById('total-points').textContent = this.currentUser.totalPoints;
+        document.getElementById('spin-cost').textContent = this.currentUser.wheelConfig.spinCost;
+        
+        // 渲染今日习惯
+        this.renderTodayHabits();
+        
+        // 渲染活动日志
+        this.renderActivityLog();
+      },
+      
+      // 渲染今日习惯
+      renderTodayHabits() {
+        const todayHabitsContainer = document.getElementById('today-habits');
+        todayHabitsContainer.innerHTML = '';
+        
+        const today = new Date();
+        const todayDay = today.getDay();
+        const todayDateString = this.formatDateString(today);
+        
+        const todayHabits = this.currentUser.habits.filter(habit => {
+          if (!habit.active) return false;
+          
+          if (habit.schedule.type === 'daily') {
+            return true;
+          } else if (habit.schedule.type === 'weekly') {
+            return habit.schedule.days.includes(todayDay);
+          }
+          
+          return false;
+        });
+        
+        if (todayHabits.length === 0) {
+          todayHabitsContainer.innerHTML = `
+            <div class="col-span-full text-center py-8">
+              <p class="text-gray-500 text-lg">今天没有需要完成的习惯</p>
+              <button class="btn-outline mt-4" onclick="AppData.showManageHabitsView()">添加习惯</button>
+            </div>
+          `;
+          return;
+        }
+        
+        todayHabits.forEach(habit => {
+          // 检查今天是否已完成
+          const todayCompletion = habit.completions.find(c => c.date === todayDateString);
+          const isCompleted = todayCompletion && todayCompletion.completed;
+          
+          const habitElement = document.createElement('div');
+          habitElement.className = 'card card-hover';
+          habitElement.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="font-bold text-lg text-gray-800">${habit.name}</h3>
+                <p class="text-gray-600 text-sm">${habit.description}</p>
+              </div>
+              <span class="badge ${isCompleted ? 'badge-success' : 'badge-primary'}">
+                ${isCompleted ? '已完成' : habit.points + ' 积分'}
+              </span>
+            </div>
+            
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-500">${habit.category}</span>
+              <button class="btn-primary ${isCompleted ? 'opacity-50 cursor-not-allowed' : ''}" 
+                      ${isCompleted ? 'disabled' : ''}
+                      onclick="AppData.completeHabit('${habit.id}')">
+                ${isCompleted ? '<i class="fa fa-check mr-2"></i> 已完成' : '完成习惯'}
+              </button>
+            </div>
+          `;
+          
+          todayHabitsContainer.appendChild(habitElement);
+        });
+      },
+      
+      // 完成习惯
+      completeHabit(habitId) {
+        const habit = this.currentUser.habits.find(h => h.id === habitId);
+        if (!habit) return;
+        
+        const today = new Date();
+        const todayDateString = this.formatDateString(today);
+        
+        // 检查今天是否已完成
+        let completion = habit.completions.find(c => c.date === todayDateString);
+        if (!completion) {
+          completion = {
+            date: todayDateString,
+            completed: false,
+            pointsEarned: 0,
+            note: ''
+          };
+          habit.completions.push(completion);
+        }
+        
+        // 标记为完成并添加积分
+        completion.completed = true;
+        completion.pointsEarned = habit.points;
+        this.currentUser.totalPoints += habit.points;
+        
+        // 添加历史记录
+        this.addHistoryRecord('completion', habit.points, `完成习惯：${habit.name}`, habit.id);
+        
+        this.saveData();
+        this.updateDashboard();
+        
+        // 显示完成动画
+        this.showCompletionAnimation(habit.points);
+      },
+      
+      // 显示完成动画
+      showCompletionAnimation(points) {
+        const animation = document.createElement('div');
+        animation.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-center';
+        animation.innerHTML = `
+          <div class="bg-white rounded-full p-8 shadow-xl animate-pulse-fast">
+            <div class="text-6xl mb-4">🎉</div>
+            <h3 class="text-2xl font-bold text-primary">太棒了！</h3>
+            <p class="text-xl text-gray-700">获得 <span class="font-bold text-yellow-500">${points}</span> 积分</p>
+          </div>
+        `;
+        
+        document.body.appendChild(animation);
+        
+        setTimeout(() => {
+          animation.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+          setTimeout(() => {
+            document.body.removeChild(animation);
+          }, 500);
+        }, 2000);
+      },
+      
+      // 渲染活动日志
+      renderActivityLog() {
+        const activityLogContainer = document.getElementById('activity-log');
+        activityLogContainer.innerHTML = '';
+        
+        if (this.currentUser.history.length === 0) {
+          activityLogContainer.innerHTML = `
+            <div class="text-center py-8">
+              <p class="text-gray-500">暂无活动记录</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // 按日期排序，最新的在前
+        const sortedHistory = [...this.currentUser.history].sort((a, b) => {
+          return new Date(b.date) - new Date(a.date);
+        });
+        
+        // 只显示最近10条记录
+        const recentHistory = sortedHistory.slice(0, 10);
+        
+        recentHistory.forEach(record => {
+          const date = new Date(record.date);
+          const formattedDate = this.formatDateTime(date);
+          
+          let icon = 'fa-star';
+          let color = 'text-primary';
+          
+          if (record.type === 'completion') {
+            icon = 'fa-check-circle';
+            color = 'text-success';
+          } else if (record.type === 'reward') {
+            icon = 'fa-gift';
+            color = 'text-secondary';
+          } else if (record.type === 'manual') {
+            icon = 'fa-edit';
+            color = 'text-info';
+          }
+          
+          const recordElement = document.createElement('div');
+          recordElement.className = 'flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors';
+          recordElement.innerHTML = `
+            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-4">
+              <i class="fa ${icon} ${color}"></i>
+            </div>
+            <div class="flex-1">
+              <p class="font-medium text-gray-800">${record.description}</p>
+              <p class="text-sm text-gray-500">${formattedDate}</p>
+            </div>
+            <span class="font-bold ${record.points > 0 ? 'text-success' : 'text-danger'}">
+              ${record.points > 0 ? '+' : ''}${record.points}
+            </span>
+          `;
+          
+          activityLogContainer.appendChild(recordElement);
+        });
+      },
+      
+      // 添加历史记录
+      addHistoryRecord(type, points, description, relatedId = null) {
+        const record = {
+          id: this.generateId(),
+          type: type,
+          date: new Date().toISOString(),
+          points: points,
+          description: description,
+          relatedId: relatedId
+        };
+        
+        this.currentUser.history.push(record);
+      },
+      
+      // 渲染习惯列表
+      renderHabitsList() {
+        const habitsListContainer = document.getElementById('habits-list');
+        habitsListContainer.innerHTML = '';
+        
+        if (this.currentUser.habits.length === 0) {
+          habitsListContainer.innerHTML = `
+            <div class="text-center py-8">
+              <p class="text-gray-500">暂无习惯，请添加新习惯</p>
+            </div>
+          `;
+          return;
+        }
+        
+        this.currentUser.habits.forEach(habit => {
+          const habitElement = document.createElement('div');
+          habitElement.className = 'bg-white rounded-xl shadow p-4 hover:shadow-md transition-all';
+          habitElement.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="font-bold text-lg text-gray-800">${habit.name}</h3>
+                <p class="text-gray-600 text-sm">${habit.description}</p>
+              </div>
+              <div class="flex items-center">
+                <span class="badge ${habit.active ? 'badge-primary' : 'badge-warning'} mr-2">
+                  ${habit.active ? '启用' : '禁用'}
+                </span>
+                <div class="relative">
+                  <button class="text-gray-400 hover:text-gray-600 focus:outline-none" onclick="AppData.showHabitMenu(event, '${habit.id}')">
+                    <i class="fa fa-ellipsis-v"></i>
+                  </button>
+                  <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10 hidden habit-menu">
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" onclick="AppData.editHabit('${habit.id}')">
+                      <i class="fa fa-edit mr-2 text-gray-600"></i> 编辑
+                    </button>
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" onclick="AppData.toggleHabitStatus('${habit.id}')">
+                      <i class="fa ${habit.active ? 'fa-eye-slash' : 'fa-eye'} mr-2 text-gray-600"></i> ${habit.active ? '禁用' : '启用'}
+                    </button>
+                    <hr class="my-1">
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-red-500" onclick="AppData.deleteHabit('${habit.id}')">
+                      <i class="fa fa-trash mr-2"></i> 删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-between">
+              <div class="flex items-center space-x-4 mb-2 sm:mb-0">
+                <span class="badge bg-gray-100 text-gray-700">
+                  <i class="fa fa-tag mr-1"></i> ${habit.category}
+                </span>
+                <span class="badge bg-gray-100 text-gray-700">
+                  <i class="fa fa-calendar mr-1"></i> ${habit.schedule.type === 'daily' ? '每天' : '每周'}
+                </span>
+              </div>
+              <div class="flex items-center">
+                <span class="text-lg font-bold text-primary mr-2">${habit.points} 积分</span>
+              </div>
+            </div>
+          `;
+          
+          habitsListContainer.appendChild(habitElement);
+        });
+      },
+      
+      // 显示习惯菜单
+      showHabitMenu(event, habitId) {
+        event.stopPropagation();
+        
+        // 隐藏所有习惯菜单
+        document.querySelectorAll('.habit-menu').forEach(menu => {
+          menu.classList.add('hidden');
+        });
+        
+        // 显示当前习惯菜单
+        const menu = event.currentTarget.nextElementSibling;
+        menu.classList.remove('hidden');
+        
+        // 点击其他地方隐藏菜单
+        document.addEventListener('click', function hideMenu() {
+          menu.classList.add('hidden');
+          document.removeEventListener('click', hideMenu);
+        });
+      },
+      
+      // 编辑习惯
+      editHabit(habitId) {
+        const habit = this.currentUser.habits.find(h => h.id === habitId);
+        if (!habit) return;
+        
+        // 填充表单
+        document.getElementById('habit-id').value = habit.id;
+        document.getElementById('habit-name').value = habit.name;
+        document.getElementById('habit-description').value = habit.description;
+        document.getElementById('habit-points').value = habit.points;
+        document.getElementById('habit-category').value = habit.category;
+        
+        // 设置频率
+        if (habit.schedule.type === 'daily') {
+          document.querySelector('input[name="habit-frequency"][value="daily"]').checked = true;
+          document.getElementById('weekly-days').classList.add('hidden');
+        } else {
+          document.querySelector('input[name="habit-frequency"][value="weekly"]').checked = true;
+          document.getElementById('weekly-days').classList.remove('hidden');
+          
+          // 设置星期
+          document.querySelectorAll('input[name="habit-days"]').forEach(checkbox => {
+            checkbox.checked = habit.schedule.days.includes(parseInt(checkbox.value));
+          });
+        }
+        
+        // 更新表单标题和按钮
+        document.getElementById('habit-form-title').textContent = '编辑习惯';
+        document.getElementById('save-habit-btn').textContent = '更新习惯';
+        document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        
+        // 滚动到表单
+        document.getElementById('habit-form').scrollIntoView({ behavior: 'smooth' });
+      },
+      
+      // 重置习惯表单
+      resetHabitForm() {
+        document.getElementById('habit-form').reset();
+        document.getElementById('habit-id').value = '';
+        document.getElementById('habit-form-title').textContent = '添加新习惯';
+        document.getElementById('save-habit-btn').textContent = '保存习惯';
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+        document.getElementById('weekly-days').classList.add('hidden');
+        document.querySelector('input[name="habit-frequency"][value="daily"]').checked = true;
+      },
+      
+      // 保存习惯
+      saveHabit(e) {
+        e.preventDefault();
+        
+        const habitId = document.getElementById('habit-id').value;
+        const name = document.getElementById('habit-name').value;
+        const description = document.getElementById('habit-description').value;
+        const points = parseInt(document.getElementById('habit-points').value);
+        const category = document.getElementById('habit-category').value;
+        const frequency = document.querySelector('input[name="habit-frequency"]:checked').value;
+        
+        let days = [];
+        if (frequency === 'weekly') {
+          document.querySelectorAll('input[name="habit-days"]:checked').forEach(checkbox => {
+            days.push(parseInt(checkbox.value));
+          });
+          
+          if (days.length === 0) {
+            this.showModal('错误', '请至少选择一天');
+            return;
+          }
+        } else {
+          days = [0, 1, 2, 3, 4, 5, 6];
+        }
+        
+        if (habitId) {
+          // 更新现有习惯
+          const habit = this.currentUser.habits.find(h => h.id === habitId);
+          if (habit) {
+            habit.name = name;
+            habit.description = description;
+            habit.points = points;
+            habit.category = category;
+            habit.schedule.type = frequency;
+            habit.schedule.days = days;
+            
+            this.showModal('成功', '习惯已更新');
+          }
+        } else {
+          // 创建新习惯
+          const newHabit = {
+            id: this.generateId(),
+            name: name,
+            description: description,
+            points: points,
+            category: category,
+            active: true,
+            createdAt: new Date().toISOString(),
+            schedule: {
+              type: frequency,
+              days: days
+            },
+            completions: []
+          };
+          
+          this.currentUser.habits.push(newHabit);
+          this.showModal('成功', '习惯已添加');
+        }
+        
+        this.saveData();
+        this.renderHabitsList();
+        this.resetHabitForm();
+      },
+      
+      // 切换习惯状态
+      toggleHabitStatus(habitId) {
+        const habit = this.currentUser.habits.find(h => h.id === habitId);
+        if (habit) {
+          habit.active = !habit.active;
+          this.saveData();
+          this.renderHabitsList();
+          this.showModal('成功', `习惯已${habit.active ? '启用' : '禁用'}`);
+        }
+      },
+      
+      // 删除习惯
+      deleteHabit(habitId) {
+        this.showModal(
+          '确认删除',
+          '确定要删除这个习惯吗？此操作无法撤销。',
+          [
+            {
+              text: '取消',
+              className: 'btn-outline',
+              onClick: () => this.hideModal()
+            },
+            {
+              text: '删除',
+              className: 'bg-red-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-opacity-90 transition-all duration-300',
+              onClick: () => {
+                const index = this.currentUser.habits.findIndex(h => h.id === habitId);
+                if (index !== -1) {
+                  this.currentUser.habits.splice(index, 1);
+                  this.saveData();
+                  this.renderHabitsList();
+                  this.hideModal();
+                  this.showModal('成功', '习惯已删除');
+                }
+              }
+            }
+          ]
+        );
+      },
+      
+      // 渲染奖励列表
+      renderRewardsList() {
+        const rewardsListContainer = document.getElementById('rewards-list');
+        rewardsListContainer.innerHTML = '';
+        
+        if (this.currentUser.rewards.length === 0) {
+          rewardsListContainer.innerHTML = `
+            <div class="text-center py-8">
+              <p class="text-gray-500">暂无奖励，请添加新奖励</p>
+            </div>
+          `;
+          return;
+        }
+        
+        this.currentUser.rewards.forEach(reward => {
+          const rewardElement = document.createElement('div');
+          rewardElement.className = 'bg-white rounded-xl shadow p-4 hover:shadow-md transition-all';
+          rewardElement.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex items-center">
+                <div class="w-12 h-12 rounded-full bg-secondary bg-opacity-10 flex items-center justify-center text-2xl mr-4">
+                  ${reward.image}
+                </div>
+                <div>
+                  <h3 class="font-bold text-lg text-gray-800">${reward.name}</h3>
+                  <p class="text-gray-600 text-sm">${reward.description}</p>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <span class="badge ${reward.active ? 'badge-primary' : 'badge-warning'} mr-2">
+                  ${reward.active ? '启用' : '禁用'}
+                </span>
+                <div class="relative">
+                  <button class="text-gray-400 hover:text-gray-600 focus:outline-none" onclick="AppData.showRewardMenu(event, '${reward.id}')">
+                    <i class="fa fa-ellipsis-v"></i>
+                  </button>
+                  <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10 hidden reward-menu">
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" onclick="AppData.editReward('${reward.id}')">
+                      <i class="fa fa-edit mr-2 text-gray-600"></i> 编辑
+                    </button>
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center" onclick="AppData.toggleRewardStatus('${reward.id}')">
+                      <i class="fa ${reward.active ? 'fa-eye-slash' : 'fa-eye'} mr-2 text-gray-600"></i> ${reward.active ? '禁用' : '启用'}
+                    </button>
+                    <hr class="my-1">
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-red-500" onclick="AppData.deleteReward('${reward.id}')">
+                      <i class="fa fa-trash mr-2"></i> 删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-bold text-secondary">${reward.cost} 积分</span>
+            </div>
+          `;
+          
+          rewardsListContainer.appendChild(rewardElement);
+        });
+      },
+      
+      // 显示奖励菜单
+      showRewardMenu(event, rewardId) {
+        event.stopPropagation();
+        
+        // 隐藏所有奖励菜单
+        document.querySelectorAll('.reward-menu').forEach(menu => {
+          menu.classList.add('hidden');
+        });
+        
+        // 显示当前奖励菜单
+        const menu = event.currentTarget.nextElementSibling;
+        menu.classList.remove('hidden');
+        
+        // 点击其他地方隐藏菜单
+        document.addEventListener('click', function hideMenu() {
+          menu.classList.add('hidden');
+          document.removeEventListener('click', hideMenu);
+        });
+      },
+      
+      // 编辑奖励
+      editReward(rewardId) {
+        const reward = this.currentUser.rewards.find(r => r.id === rewardId);
+        if (!reward) return;
+        
+        // 填充表单
+        document.getElementById('reward-id').value = reward.id;
+        document.getElementById('reward-name-input').value = reward.name;
+        document.getElementById('reward-description').value = reward.description;
+        document.getElementById('reward-cost').value = reward.cost;
+        
+        // 更新表单标题和按钮
+        document.getElementById('reward-form-title').textContent = '编辑奖励';
+        document.getElementById('save-reward-btn').textContent = '更新奖励';
+        document.getElementById('cancel-reward-edit-btn').classList.remove('hidden');
+        
+        // 滚动到表单
+        document.getElementById('reward-form').scrollIntoView({ behavior: 'smooth' });
+      },
+      
+      // 重置奖励表单
+      resetRewardForm() {
+        document.getElementById('reward-form').reset();
+        document.getElementById('reward-id').value = '';
+        document.getElementById('reward-form-title').textContent = '添加新奖励';
+        document.getElementById('save-reward-btn').textContent = '保存奖励';
+        document.getElementById('cancel-reward-edit-btn').classList.add('hidden');
+      },
+      
+      // 保存奖励
+      saveReward(e) {
+        e.preventDefault();
+        
+        const rewardId = document.getElementById('reward-id').value;
+        const name = document.getElementById('reward-name-input').value;
+        const description = document.getElementById('reward-description').value;
+        const cost = parseInt(document.getElementById('reward-cost').value);
+        
+        // 获取选中的图标
+        const selectedIcon = document.querySelector('.reward-icon-option.selected img').src;
+        
+        if (rewardId) {
+          // 更新现有奖励
+          const reward = this.currentUser.rewards.find(r => r.id === rewardId);
+          if (reward) {
+            reward.name = name;
+            reward.description = description;
+            reward.cost = cost;
+            
+            this.showModal('成功', '奖励已更新');
+          }
+        } else {
+          // 创建新奖励
+          const newReward = {
+            id: this.generateId(),
+            name: name,
+            description: description,
+            cost: cost,
+            active: true,
+            createdAt: new Date().toISOString(),
+            image: "🎁" // 默认图标
+          };
+          
+          this.currentUser.rewards.push(newReward);
+          this.showModal('成功', '奖励已添加');
+        }
+        
+        this.saveData();
+        this.renderRewardsList();
+        this.renderWheelRewards();
+        this.resetRewardForm();
+      },
+      
+      // 切换奖励状态
+      toggleRewardStatus(rewardId) {
+        const reward = this.currentUser.rewards.find(r => r.id === rewardId);
+        if (reward) {
+          reward.active = !reward.active;
+          this.saveData();
+          this.renderRewardsList();
+          this.renderWheelRewards();
+          this.showModal('成功', `奖励已${reward.active ? '启用' : '禁用'}`);
+        }
+      },
+      
+      // 删除奖励
+      deleteReward(rewardId) {
+        this.showModal(
+          '确认删除',
+          '确定要删除这个奖励吗？此操作无法撤销。',
+          [
+            {
+              text: '取消',
+              className: 'btn-outline',
+              onClick: () => this.hideModal()
+            },
+            {
+              text: '删除',
+              className: 'bg-red-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-opacity-90 transition-all duration-300',
+              onClick: () => {
+                const index = this.currentUser.rewards.findIndex(r => r.id === rewardId);
+                if (index !== -1) {
+                  this.currentUser.rewards.splice(index, 1);
+                  
+                  // 从转盘中移除
+                  this.currentUser.wheelConfig.segments = this.currentUser.wheelConfig.segments.filter(
+                    segment => segment.rewardId !== rewardId
+                  );
+                  
+                  this.saveData();
+                  this.renderRewardsList();
+                  this.renderWheelRewards();
+                  this.hideModal();
+                  this.showModal('成功', '奖励已删除');
+                }
+              }
+            }
+          ]
+        );
+      },
+      
+      // 渲染转盘奖励选择
+      renderWheelRewards() {
+        const wheelRewardsContainer = document.getElementById('wheel-rewards');
+        wheelRewardsContainer.innerHTML = '';
+        
+        const activeRewards = this.currentUser.rewards.filter(reward => reward.active);
+        
+        if (activeRewards.length === 0) {
+          wheelRewardsContainer.innerHTML = `
+            <div class="col-span-full text-center py-4">
+              <p class="text-gray-500">暂无可用奖励，请先添加奖励</p>
+            </div>
+          `;
+          return;
+        }
+        
+        activeRewards.forEach(reward => {
+          const isSelected = this.currentUser.wheelConfig.segments.some(segment => segment.rewardId === reward.id);
+          
+          const rewardElement = document.createElement('div');
+          rewardElement.className = `flex items-center p-3 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-primary bg-opacity-10' : 'bg-gray-50 hover:bg-gray-100'}`;
+          rewardElement.innerHTML = `
+            <input type="checkbox" id="wheel-reward-${reward.id}" class="form-checkbox h-5 w-5 text-primary mr-3" ${isSelected ? 'checked' : ''}>
+            <label for="wheel-reward-${reward.id}" class="flex items-center cursor-pointer">
+              <div class="w-8 h-8 rounded-full bg-secondary bg-opacity-10 flex items-center justify-center text-lg mr-2">
+                ${reward.image}
+              </div>
+              <span class="font-medium text-gray-800">${reward.name}</span>
+            </label>
+          `;
+          
+          rewardElement.addEventListener('click', () => {
+            const checkbox = rewardElement.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+          });
+          
+          wheelRewardsContainer.appendChild(rewardElement);
+        });
+      },
+      
+      // 保存转盘配置
+      saveWheelConfig() {
+        const spinCost = parseInt(document.getElementById('spin-cost-input').value);
+        if (isNaN(spinCost) || spinCost < 1) {
+          this.showModal('错误', '请输入有效的积分消耗');
+          return;
+        }
+        
+        // 获取选中的奖励
+        const selectedRewards = [];
+        document.querySelectorAll('#wheel-rewards input[type="checkbox"]:checked').forEach(checkbox => {
+          const rewardId = checkbox.id.replace('wheel-reward-', '');
+          selectedRewards.push(rewardId);
+        });
+        
+        if (selectedRewards.length === 0) {
+          this.showModal('错误', '请至少选择一个奖励');
+          return;
+        }
+        
+        if (selectedRewards.length > 8) {
+          this.showModal('错误', '最多只能选择8个奖励');
+          return;
+        }
+        
+        // 更新转盘配置
+        this.currentUser.wheelConfig.spinCost = spinCost;
+        this.currentUser.wheelConfig.segments = selectedRewards.map(rewardId => ({
+          id: this.generateId(),
+          rewardId: rewardId,
+          weight: 1
+        }));
+        
+        this.saveData();
+        document.getElementById('spin-cost').textContent = spinCost;
+        this.showModal('成功', '转盘配置已保存');
+      },
+      
+      // 转动转盘
+      spinWheel() {
+        // 隐藏之前的结果
+        document.getElementById('spin-result').classList.add('hidden');
+        document.getElementById('insufficient-points').classList.add('hidden');
+        
+        // 检查积分是否足够
+        if (this.currentUser.totalPoints < this.currentUser.wheelConfig.spinCost) {
+          document.getElementById('insufficient-points').classList.remove('hidden');
+          return;
+        }
+        
+        // 扣除积分
+        this.currentUser.totalPoints -= this.currentUser.wheelConfig.spinCost;
+        this.addHistoryRecord('reward', -this.currentUser.wheelConfig.spinCost, `转动幸运转盘`, null);
+        
+        // 获取转盘段
+        const segments = this.currentUser.wheelConfig.segments;
+        if (segments.length === 0) {
+          this.showModal('错误', '转盘尚未配置，请先添加奖励');
+          return;
+        }
+        
+        // 随机选择一个奖励
+        const randomIndex = Math.floor(Math.random() * segments.length);
+        const selectedSegment = segments[randomIndex];
+        const selectedReward = this.currentUser.rewards.find(r => r.id === selectedSegment.rewardId);
+        
+        if (!selectedReward) {
+          this.showModal('错误', '选中的奖励不存在');
+          return;
+        }
+        
+        // 显示转盘动画
+        const wheelImage = document.getElementById('wheel-image');
+        wheelImage.classList.add('animate-spin-slow');
+        
+        // 2秒后停止动画并显示结果
+        setTimeout(() => {
+          wheelImage.classList.remove('animate-spin-slow');
+          
+          // 显示结果
+          document.getElementById('reward-name').textContent = selectedReward.name;
+          document.getElementById('spin-result').classList.remove('hidden');
+          
+          // 添加历史记录
+          this.addHistoryRecord('reward', 0, `获得奖励：${selectedReward.name}`, selectedReward.id);
+          
+          this.saveData();
+          this.updateDashboard();
+        }, 2000);
+      },
+      
+      // 创建用户
+      createUser(e) {
+        e.preventDefault();
+        
+        const userName = document.getElementById('user-name').value;
+        if (!userName.trim()) {
+          this.showModal('错误', '请输入孩子姓名');
+          return;
+        }
+        
+        const initialPoints = parseInt(document.getElementById('initial-points').value) || 0;
+        
+        // 获取选中的头像
+        const selectedAvatar = document.querySelector('.avatar-option.selected img').src;
+        
+        const newUser = {
+          userId: this.generateId(),
+          userName: userName,
+          avatar: userName.charAt(0), // 使用姓名首字母作为头像
+          totalPoints: initialPoints,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          
+          habits: [],
+          rewards: [],
+          wheelConfig: {
+            segments: [],
+            spinCost: 100
+          },
+          history: []
+        };
+        
+        this.users.push(newUser);
+        this.saveData();
+        this.login(newUser);
+      },
+      
+      // 重置创建用户表单
+      resetCreateUserForm() {
+        document.getElementById('create-user-form').reset();
+        document.querySelectorAll('.avatar-option').forEach((option, index) => {
+          if (index === 0) {
+            option.querySelector('img').classList.remove('border-transparent');
+            option.querySelector('img').classList.add('border-primary');
+          } else {
+            option.querySelector('img').classList.remove('border-primary');
+            option.querySelector('img').classList.add('border-transparent');
+          }
+        });
+      },
+      
+      // 导出所有数据
+      exportAllData() {
+        const data = {
+          users: this.users,
+          exportDate: new Date().toISOString(),
+          version: '1.0'
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `kids-reward-system-${this.formatDateString(new Date())}.json`;
+        link.click();
+      },
+      
+      // 导出当前用户数据
+      exportUserData() {
+        if (!this.currentUser) return;
+        
+        const data = {
+          user: this.currentUser,
+          exportDate: new Date().toISOString(),
+          version: '1.0'
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `kids-reward-system-${this.currentUser.userName}-${this.formatDateString(new Date())}.json`;
+        link.click();
+      },
+      
+      // 导入数据
+      importData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            
+            if (data.users) {
+              // 导入所有用户
+              this.users = data.users;
+              this.saveData();
+              this.showLoginView();
+              this.showModal('成功', '数据已导入');
+            } else if (data.user) {
+              // 导入单个用户
+              const existingUserIndex = this.users.findIndex(u => u.userId === data.user.userId);
+              
+              if (existingUserIndex !== -1) {
+                this.showModal(
+                  '确认导入',
+                  '发现相同ID的用户，是否覆盖？',
+                  [
+                    {
+                      text: '取消',
+                      className: 'btn-outline',
+                      onClick: () => this.hideModal()
+                    },
+                    {
+                      text: '覆盖',
+                      className: 'btn-primary',
+                      onClick: () => {
+                        this.users[existingUserIndex] = data.user;
+                        this.saveData();
+                        this.showLoginView();
+                        this.hideModal();
+                        this.showModal('成功', '用户数据已导入');
+                      }
+                    }
+                  ]
+                );
+              } else {
+                this.users.push(data.user);
+                this.saveData();
+                this.showLoginView();
+                this.showModal('成功', '用户数据已导入');
+              }
+            } else {
+              this.showModal('错误', '无效的数据格式');
+            }
+          } catch (error) {
+            this.showModal('错误', '导入失败：' + error.message);
+          }
+        };
+        
+        reader.readAsText(file);
+        e.target.value = ''; // 重置文件输入
+      },
+      
+      // 显示模态框
+      showModal(title, content, buttons = []) {
+        const modalContent = document.getElementById('modal-content');
+        
+        let buttonsHtml = '';
+        if (buttons.length === 0) {
+          buttons = [{
+            text: '确定',
+            className: 'btn-primary',
+            onClick: () => this.hideModal()
+          }];
+        }
+        
+        buttons.forEach((button, index) => {
+          // 为每个按钮创建一个唯一的ID
+          const buttonId = `modal-button-${index}`;
+          
+          buttonsHtml += `
+            <button id="${buttonId}" class="${button.className}">
+              ${button.text}
+            </button>
+          `;
+        });
+        
+        modalContent.innerHTML = `
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">${title}</h3>
+            <p class="text-gray-600 mb-6">${content}</p>
+            <div class="flex justify-end space-x-3">
+              ${buttonsHtml}
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('modal').classList.remove('hidden');
+        
+        // 为按钮添加事件监听器
+        buttons.forEach((button, index) => {
+          const buttonElement = document.getElementById(`modal-button-${index}`);
+          if (buttonElement) {
+            buttonElement.addEventListener('click', button.onClick);
+          }
+        });
+      },
+      
+      // 隐藏模态框
+      hideModal() {
+        document.getElementById('modal').classList.add('hidden');
+      },
+      
+      // 切换用户菜单
+      toggleUserMenu() {
+        document.getElementById('user-menu').classList.toggle('hidden');
+      },
+      
+      // 更新今日日期
+      updateTodayDate() {
+        const today = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+        document.getElementById('today-date').textContent = today.toLocaleDateString('zh-CN', options);
+      },
+      
+      // 格式化日期
+      formatDate(date) {
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return date.toLocaleDateString('zh-CN', options);
+      },
+      
+      // 格式化日期时间
+      formatDateTime(date) {
+        const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return date.toLocaleDateString('zh-CN', options);
+      },
+      
+      // 格式化日期字符串（YYYY-MM-DD）
+      formatDateString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+    };
+    
+    // 兼容性检查和初始化
+    (function() {
+      // 检查是否支持必要的API
+      const checkCompatibility = function() {
+        return (
+          typeof localStorage !== 'undefined' &&
+          typeof JSON !== 'undefined' &&
+          typeof Promise !== 'undefined' &&
+          typeof document.querySelector !== 'undefined'
+        );
+      };
+      
+      // 初始化应用
+      const initApp = function() {
+        if (checkCompatibility()) {
+          AppData.init();
+        } else {
+          // 显示兼容性警告
+          document.body.innerHTML = `
+            <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+              <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+                <h2 class="text-2xl font-bold text-red-500 mb-4">浏览器兼容性问题</h2>
+                <p class="text-gray-700 mb-6">您的浏览器版本过低，无法运行此应用。请更新您的浏览器或使用以下浏览器：</p>
+                <ul class="text-left mb-6 space-y-2">
+                  <li>• Chrome 60+</li>
+                  <li>• Firefox 55+</li>
+                  <li>• Safari 12+</li>
+                  <li>• Edge 79+</li>
+                </ul>
+                <p class="text-gray-500 text-sm">如果您使用的是较旧的设备，可能需要升级操作系统以支持最新的浏览器版本。</p>
+              </div>
+            </div>
+          `;
+        }
+      };
+      
+      // 使用传统的事件监听器来确保兼容性
+      if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', initApp);
+      } else {
+        // IE8及以下版本兼容
+        document.attachEvent('onreadystatechange', function() {
+          if (document.readyState === 'complete') {
+            initApp();
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
